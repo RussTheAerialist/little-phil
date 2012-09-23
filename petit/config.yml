@@ -1,0 +1,5 @@
+network:
+    bus:
+        send: 9000
+        recv: 9001
+    logging: 9100
