@@ -1,5 +1,9 @@
 network:
+    protocol: tcp
     bus:
-        send: 9000
-        recv: 9001
-    logging: 9100
+        send:
+            port: 9000
+        recv:
+            port: 9001
+    logging:
+            port: 9100

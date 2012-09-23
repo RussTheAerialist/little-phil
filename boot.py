@@ -3,6 +3,7 @@ import os.path as path
 from pkg_resources import resource_listdir
 
 import petit
+import petit.communication as communication
 
 def load(module_name):
     try:
@@ -29,6 +30,7 @@ def subsystems():
             yield (module_name, retval)
 
 def start(system, config):
+    # NOTE: Should I even use multiprocessing here?  Probably not
     proc = multiprocessing.Process(target=system, args=(config,))
     proc.start()
     return proc
@@ -36,11 +38,17 @@ def start(system, config):
 def main():
     config = petit.load_config()
     processes = [ ]
+    comm_factory = communication.factory(config)
+    log_receiver = comm_factory.log_receiver(bind=True)
+
     for (name, system) in subsystems():
         proc = start(system, config)
-        processes.append(proc)
+        processes.append((name, proc))
 
-    for proc in processes:
+    message = log_receiver.recv()
+    print message
+
+    for (name,proc) in processes:
         proc.join()
 
 if __name__ == '__main__':

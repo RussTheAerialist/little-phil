@@ -1,12 +1,22 @@
+import logging
+log = logging.getLogger(__name__)
+
 import zmq
 
+import petit.communication as communication
+import petit.logger as logger
+
 def main(config):
-    context = zmq.Context()
-    bus_recv = zmq.socket(zmq.SUB)
-    bus_recv.connect("tcp://localhost:{port}".format(port=config['network']['bus']['recv']))
-    bus_recv.setsockopt(zmq.SUBSCRIBE, 'cmd:')
+    comm_factory = communication.factory(config)
+    zmq_logger = comm_factory.log_sender()
+    log.setLevel(logging.DEBUG)
 
-    bus_send = zmq.socket(zmq.PUB)
-    bus_send.connect("tcp://localhost:{port}".format(port=config['network']['bus']['send']))
+    log.addHandler(logger.ZmqLogHandler(zmq_logger, logging.DEBUG))
 
-    print "Hardware Subsystem Online"
+    log.info("Hardware Subsystem Online")
+    print "done"
+
+if __name__ == '__main__':
+    import yaml
+
+    main(yaml.load(open("config.yml")))
