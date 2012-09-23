@@ -66,12 +66,12 @@ class _Factory(lib._BaseObject):
     def bus_sender(self):
         return self._pub(self._config['network']['bus'])
 
-    def _sub(config, filt, bind=False):
+    def _sub(self, config, filt, bind=False):
         hostname = config.get('host', None)
         return self._create_connection(zmq.SUB, config['port'],
                                        bind, hostname, filt)
 
-    def _pub(config):
+    def _pub(self, config):
         hostname = config.get('host', None)
         return self._create_connection(zmq.PUB, config['port'],
                                        False, hostname)

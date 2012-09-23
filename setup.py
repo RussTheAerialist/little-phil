@@ -6,6 +6,7 @@ setup(
     packages = [
         "petit",
         "petit.lib",
+        "petit.packets",
     ],
     scripts = [
         "boot.py",

@@ -3,17 +3,17 @@ log = logging.getLogger(__name__)
 
 import zmq
 
-import petit.communication as communication
-import petit.logger as logger
+import petit.lib.subsystem as subsystem
+
+class HardwareSubsystem(subsystem.Subsystem):
+    def run(self):
+        pass
 
 def main(config):
-    comm_factory = communication.factory(config)
-    zmq_logger = comm_factory.log_sender()
     log.setLevel(logging.DEBUG)
+    subsystem = HardwareSubsystem(config, __name__, log)
+    subsystem.start()
 
-    log.addHandler(logger.ZmqLogHandler(zmq_logger, logging.DEBUG))
-
-    log.info("Hardware Subsystem Online")
     print "done"
 
 if __name__ == '__main__':
