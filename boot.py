@@ -17,11 +17,34 @@ def subsystems():
         if function is not None:
             yield (name, function)
 
+def camelcase(string):
+    if string.count("_") == 0:
+        return string.capitalize()
+    return "".join([x.capitalize() for x in string.split("_")])
+
+def event_camelcase(string):
+    return camelcase(string.replace("_event", ""))
+
+def get_responders():
+    """ Get all event handlers in the current module """
+    retval = dict([(event_camelcase(x),y) for (x,y) in globals().items() if x.endswith('event')])
+    return retval
+
 def start(system, config):
     # NOTE: Should I even use multiprocessing here?  Probably not
     proc = multiprocessing.Process(target=system, args=(config,))
     proc.start()
     return proc
+
+def sin_event(packet, status):
+    response = handshake.Ack.from_sin(packet)
+    if response._name in status:
+        print "{system} Online".format(system=response._name)
+        retval = dict(status)
+        retval[response._name] = True
+
+        return (response, retval)
+    return (None, None)
 
 def main():
     config = petit.load_config()
@@ -30,6 +53,8 @@ def main():
     log_receiver = comm_factory.log_receiver(bind=True)
     bus_receiver = comm_factory.bus_receiver(bind=True)
     bus_sender = comm_factory.bus_sender()
+
+    responders = get_responders()
 
     subsystem_status = { }
 
@@ -43,7 +68,6 @@ def main():
     poller.register(bus_receiver, zmq.POLLIN)
 
     done = False
-    msg_count = 10
     while not done:
         socks = dict(poller.poll())
         for (sock, value) in socks.items():
@@ -51,21 +75,16 @@ def main():
                 message = sock.recv()
                 try:
                     packet = packets.Packet.from_string(message)
-                    if packet.packet_type == "Sin":
-                        response = handshake.Ack.from_sin(packet)
-                        bus_sender.send(response.packet)
-                        if response._name in subsystem_status:
-                            print "{system} Online".format(system=response._name)
-                            subsystem_status[response._name] = True
+                    if packet.packet_type in responders:
+                        responder = responders[packet.packet_type]
+                        (response, status) = responder(packet, subsystem_status)
+                        if response is not None:
+                            bus_sender.send(response.packet)
+                            subsystem_status = status
 
-                        # If All of the subsystems are booted, we are done
                         done = reduce(lambda x,y: x and y, subsystem_status.values())
                 except Exception, ex:
                     print ex
-
-                msg_count -= 1
-                if msg_count <= 0:
-                    done = True
 
     for (name,proc) in processes:
         proc.terminate()
